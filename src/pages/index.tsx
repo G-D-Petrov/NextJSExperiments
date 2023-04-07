@@ -4,6 +4,7 @@ import { RouterOptions } from "next/dist/server/router";
 import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
+import { LoadingPage } from "~/components/loading";
 
 import { api } from "~/utils/api";
 
@@ -44,7 +45,7 @@ const Home: NextPage = () => {
   const user = useUser();
   const { data, isLoading } = api.posts.getAll.useQuery();
 
-  if ( isLoading ) return <div>Loading...</div>;
+  if ( isLoading ) return <LoadingPage />;
 
   if ( !data ) return <div>Something went wrong...</div>;
 
