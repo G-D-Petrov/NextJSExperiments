@@ -1,6 +1,5 @@
 import { SignInButton, SignOutButton, useUser } from "@clerk/nextjs";
 import { type NextPage } from "next";
-import { RouterOptions } from "next/dist/server/router";
 import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
@@ -8,7 +7,7 @@ import { use, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Loading, LoadingPage } from "~/components/loading";
 
-import { api } from "~/utils/api";
+import { api, RouterOutputs } from "~/utils/api";
 
 const CreatePostWizzard = () => {
 
@@ -64,7 +63,7 @@ const CreatePostWizzard = () => {
 
 };
 
-type PostWithUser = RouterOptions['posts']['getAll'][number];
+type PostWithUser = RouterOutputs['posts']['getAll'][number];
 const PostView = (props: PostWithUser) => {
   const { post, author } = props;
   return (
