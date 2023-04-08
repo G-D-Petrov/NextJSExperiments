@@ -71,9 +71,10 @@ const PostView = (props: PostWithUser) => {
       <Image src={author.profileImageUrl} alt="Author Profile Picture" className="w-16 h-16 rounded-full" width={56} height={56}/>
       <div className="flex flex-col">
         <div className="flex">
-          <span>{`@${author.username}`}</span>
+          <Link href={`/@${author.username}`}><span>{`@${author.username}`}</span></Link> 
         </div>
-        <span>{post.content}</span>  
+        <Link href={`/posts/${post.id}`}><span>{post.content}</span>  </Link>
+        
       </div>
     </div>
   );
