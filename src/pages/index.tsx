@@ -4,6 +4,7 @@ import { RouterOptions } from "next/dist/server/router";
 import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
+import { use } from "react";
 import { LoadingPage } from "~/components/loading";
 
 import { api } from "~/utils/api";
@@ -24,7 +25,7 @@ const CreatePostWizzard = () => {
 
 };
 
-type PostWithUser = RouterOptions['post']['getAll'][number];
+type PostWithUser = RouterOptions['posts']['getAll'][number];
 const PostView = (props: PostWithUser) => {
   const { post, author } = props;
   return (
@@ -40,14 +41,27 @@ const PostView = (props: PostWithUser) => {
   );
 };
 
-const Home: NextPage = () => { 
-
-  const user = useUser();
-  const { data, isLoading } = api.posts.getAll.useQuery();
+const Feed = () => {
+  const {data, isLoading} = api.posts.getAll.useQuery();
 
   if ( isLoading ) return <LoadingPage />;
 
   if ( !data ) return <div>Something went wrong...</div>;
+
+  return (
+    <div className="flex flex-col">
+      {[...data, ...data]?.map((fullPost) => (
+        <PostView {...fullPost} key={fullPost.post.id} />
+      ))}
+    </div>
+  );
+};
+
+const Home: NextPage = () => { 
+
+  const user = useUser();
+
+  if ( !user || !user.isLoaded ) return <LoadingPage />;
 
   console.log(user);
 
@@ -73,11 +87,7 @@ const Home: NextPage = () => {
             // </div>
             )}
           </div>
-          <div className="flex flex-col">
-            {[...data, ...data]?.map((fullPost) => (
-              <PostView {...fullPost} key={fullPost.post.id} />
-            ))}
-          </div>
+          <Feed />
         </div>
       </main>
     </>
