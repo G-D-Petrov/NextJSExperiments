@@ -4,7 +4,7 @@ import { RouterOptions } from "next/dist/server/router";
 import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
-import { use } from "react";
+import { use, useState } from "react";
 import { LoadingPage } from "~/components/loading";
 
 import { api } from "~/utils/api";
@@ -13,13 +13,38 @@ const CreatePostWizzard = () => {
 
   const { user } = useUser();
 
+  const [input, setInput] = useState("");
+
+  const ctx = api.useContext();
+
+  const { mutate, isLoading: isPosting } = api.posts.create.useMutation({
+    onSuccess: () => {
+      setInput("");
+      void ctx.posts.getAll.invalidate();
+    },
+  });
+
   // TODO: Add some error handling here
   if ( !user ) return null;
 
   return (
   <div className="flex gap-4 w-full">
     <Image src={user.profileImageUrl} alt="Profile Image" className="w-16 h-16 rounded-full" width={56} height={56}/>
-    <input placeholder="Type something bitte" className="bg-transparent grow outline-none" />
+    <input 
+      placeholder="Type something bitte"
+      className="bg-transparent grow outline-none"
+      value={input}
+      onChange={(e) => setInput(e.target.value)}
+      disabled={isPosting}
+    />
+    <button
+      className="bg-blue-500 text-white rounded-md px-4 py-2"
+      onClick={() => {
+        mutate({ content: input });
+      }}
+    >
+      Post
+    </button>
   </div>
   );
 
@@ -50,7 +75,7 @@ const Feed = () => {
 
   return (
     <div className="flex flex-col">
-      {[...data, ...data]?.map((fullPost) => (
+      {data?.map((fullPost) => (
         <PostView {...fullPost} key={fullPost.post.id} />
       ))}
     </div>
