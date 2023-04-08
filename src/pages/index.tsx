@@ -5,7 +5,8 @@ import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
 import { use, useState } from "react";
-import { LoadingPage } from "~/components/loading";
+import { toast } from "react-hot-toast";
+import { Loading, LoadingPage } from "~/components/loading";
 
 import { api } from "~/utils/api";
 
@@ -22,6 +23,9 @@ const CreatePostWizzard = () => {
       setInput("");
       void ctx.posts.getAll.invalidate();
     },
+    onError: (err) => {
+      toast.error("Failed to post! Please try again later.");
+    }
   });
 
   // TODO: Add some error handling here
@@ -35,16 +39,26 @@ const CreatePostWizzard = () => {
       className="bg-transparent grow outline-none"
       value={input}
       onChange={(e) => setInput(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          if (input === "") return;
+          mutate({ content: input });
+        }
+      }}
       disabled={isPosting}
     />
-    <button
+    {input !== "" && !isPosting && <button
       className="bg-blue-500 text-white rounded-md px-4 py-2"
       onClick={() => {
         mutate({ content: input });
       }}
+      disabled={isPosting}
     >
       Post
-    </button>
+    </button>}
+
+    {isPosting && <div className="flex flex items-center"><Loading /></div>}
   </div>
   );
 
