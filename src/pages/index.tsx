@@ -6,6 +6,7 @@ import Link from "next/link";
 import { use, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Loading, LoadingPage } from "~/components/loading";
+import { PageLayout } from "~/components/page_layout";
 
 import { api, RouterOutputs } from "~/utils/api";
 
@@ -106,10 +107,9 @@ const Home: NextPage = () => {
 
   return (
     <>
-      <main className="flex justify-center h-screen">
-        <div className="w-full md:max-w-2xl border-x border-slate-400">
-          <div className="flex border-b border-slate-400 p-4 ">
-            {!user.isSignedIn && (
+      <PageLayout>
+        <div className="flex border-b border-slate-400 p-4 ">
+          {!user.isSignedIn && (
             <div className="justify-center flex">
               <SignInButton />
               </div>
@@ -122,8 +122,7 @@ const Home: NextPage = () => {
             )}
           </div>
           <Feed />
-        </div>
-      </main>
+      </PageLayout>
     </>
   );
 };

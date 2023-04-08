@@ -1,14 +1,13 @@
 import { GetStaticProps, InferGetStaticPropsType, type NextPage } from "next";
 import Head from "next/head";
+import Image from "next/image";
 import { api } from "~/utils/api";
 
 const ProfilePage: NextPage<{ userId: string }> = ({ userId }) => { 
 
-  const { data, isLoading } = api.profile.getUserByUserId.useQuery({
-    userId: userId
+  const { data } = api.profile.getUserByUserId.useQuery({
+    userId
   }); 
-
-  if ( isLoading ) return <div>Loading...</div>;
 
   if ( !data ) return <div>Something went wrong...</div>;
 
@@ -17,11 +16,20 @@ const ProfilePage: NextPage<{ userId: string }> = ({ userId }) => {
   return (
     <>
       <Head>
-        <title>Profile</title>
+        <title>{data.username}</title>
       </Head>
-      <main className="flex justify-center h-screen">
-        {data.username}
-      </main>
+      <PageLayout>
+        <div className="bg-slate-600 h-36 relative">
+          <Image src={data.profileImageUrl}
+           alt={`${data.username}'s profile picture`} 
+           width={128}
+           height={128}
+           className="-mb-[64px] absolute bottom-0 left-0 ml-4 rounded-full border-4 border-black bg-black"/>
+        </div>
+        <div className="h-[64px]"></div>
+        <div className="p-4 text-2xl font-bold">{data.username}</div>
+        <div className="w-full border-b border-slate-400"></div>
+      </PageLayout>
     </>
   );
 };
@@ -30,6 +38,7 @@ import { createProxySSGHelpers } from '@trpc/react-query/ssg';
 import { appRouter } from "~/server/api/root";
 import { prisma } from "~/server/db";
 import superjson from "superjson";
+import { PageLayout } from "~/components/page_layout";
 
 export const getStaticProps: GetStaticProps = async (context)  => {
   const slug = context.params?.slug;
