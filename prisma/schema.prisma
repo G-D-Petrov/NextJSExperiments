@@ -11,11 +11,14 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Post {
-    id        String   @id @default(cuid())
-    createdAt DateTime @default(now())
-    content    String   @db.VarChar(255)
+model StockData {
+  id        Int      @id @default(autoincrement())
+  ticker    String
+  date      DateTime
+  open      Float
+  high      Float
+  low       Float
+  close     Float
 
-    authorId     String
-    @@index ([authorId])
+  @@index([ticker, date], name: "ticker_date_idx")
 }

@@ -8,6 +8,7 @@ import { PageLayout } from "~/components/page_layout";
 import { PostView } from "~/components/post";
 
 import { api } from "~/utils/api";
+import Chart from "./chart";
 
 const CreatePostWizzard = () => {
 
@@ -20,7 +21,7 @@ const CreatePostWizzard = () => {
   const { mutate, isLoading: isPosting } = api.posts.create.useMutation({
     onSuccess: () => {
       setInput("");
-      void ctx.posts.getAll.invalidate();
+      // void ctx.posts.getAll.invalidate();
     },
     onError: (err) => {
       toast.error("Failed to post! Please try again later.");
@@ -64,17 +65,17 @@ const CreatePostWizzard = () => {
 };
 
 const Feed = () => {
-  const {data, isLoading} = api.posts.getAll.useQuery();
+  // const {data, isLoading} = api.posts.getAll.useQuery();
 
-  if ( isLoading ) return <LoadingPage />;
+  // if ( isLoading ) return <LoadingPage />;
 
-  if ( !data ) return <div>Something went wrong...</div>;
+  // if ( !data ) return <div>Something went wrong...</div>;
 
   return (
     <div className="flex flex-col">
-      {data?.map((fullPost) => (
+      {/* {data?.map((fullPost) => (
         <PostView {...fullPost} key={fullPost.post.id} />
-      ))}
+      ))} */}
     </div>
   );
 };
@@ -97,7 +98,7 @@ const Home: NextPage = () => {
               </div>
             )} 
             {!!user.isSignedIn && (
-            <CreatePostWizzard />
+            <Chart />
             // <div className="justify-center flex">
             //   <SignOutButton />
             // </div>

@@ -1,5 +1,9 @@
-import { clerkClient } from "@clerk/nextjs/server";
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import type { Post } from "@prisma/client";
+import { PrismaClient } from '@prisma/client';
 import { TRPCError } from "@trpc/server";
 import { Ratelimit } from "@upstash/ratelimit"; // for deno: see above
 import { Redis } from "@upstash/redis";
@@ -7,63 +11,30 @@ import { Redis } from "@upstash/redis";
 import { z } from "zod";
 
 import { createTRPCRouter, privateProcedure, publicProcedure } from "~/server/api/trpc";    
-import { filterUserForClient } from "~/server/helpers/filterUserForClient";
 
-import yahooFinance from 'yahoo-finance';
+const prisma = new PrismaClient();
 
-const fetchStockData = async (symbol: string, startTime: string, endTime: string, interval: string) => {
+const fetchStockData = async (ticker: string, startTime: string, endTime: string) => {
     console.log("Fetching stock data");
-    console.log(symbol, startTime, endTime, interval);
-    // const url = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY_EXTENDED&symbol=${symbol}&interval=${interval}&slice=year1month1&apikey=59ZIVJ6UZ8GYJ1YO`;
-    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&outputsize=full&apikey=59ZIVJ6UZ8GYJ1YO`;
+    console.log(ticker, startTime, endTime);
+    const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
+    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${ticker}&apikey=${apiKey}&outputsize=full`;
     console.log(url);
-    const response = await fetch(url);
-    console.log(response);
-    const data = await response.json();
-    const dailyData = data['Time Series (Daily)'];
-    const formattedData = [];
-  
-    for (const date in dailyData) {
-      const timestamp = new Date(date).getTime();
-  
-    //   if (timestamp >= new Date(startTime).getTime() && timestamp <= new Date(endTime).getTime()) {
-        formattedData.push({
-          date: timestamp,
-          open: parseFloat(dailyData[date]['1. open']),
-          high: parseFloat(dailyData[date]['2. high']),
-          low: parseFloat(dailyData[date]['3. low']),
-          close: parseFloat(dailyData[date]['4. close']),
-          volume: parseInt(dailyData[date]['6. volume'], 10),
-        });
-    //   }
+    try {
+      const response = await fetch(url);
+      const responseData = await response.json();
+      const data = responseData['Time Series (Daily)'];
+
+      const filteredData = Object.entries(data)
+        .filter(([date]) => date >= startTime && date <= endTime)
+        .map(([date, values]) => ({ date, ...values }));
+      console.log(filteredData);
+      return filteredData;
+    } catch (error) {
+      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Error fetching stock data' });
     }
-
-    console.log(formattedData);
-
-    return formattedData;
   };
 
-export async function getStockData(ticker: string, start: string, end: string, interval: string) {
-  const historicalOptions = {
-    symbol: ticker,
-    from: start,
-    to: end,
-    period: interval.toUpperCase() === '1D' ? 'd' : interval,
-  };
-
-  const historicalData = await yahooFinance.historical(historicalOptions);
-  const prices = historicalData.map((row: any) => ({
-    date: new Date(row.date).getTime() / 1000,
-    open: row.open,
-    high: row.high,
-    low: row.low,
-    close: row.close,
-    adjClose: row.adjClose,
-    volume: row.volume,
-  }));
-
-  return {prices};
-}
 // Create a new ratelimiter, that allows 3 requests per 1 minute
 const ratelimit = new Ratelimit({
   redis: Redis.fromEnv(),
@@ -82,17 +53,55 @@ export const dataRouter = createTRPCRouter({
         ticker: z.string().nonempty(),
         start: z.string().nonempty(),
         end: z.string().nonempty(),
-        interval: z.string().nonempty(),
     })).query(async ({ input }) => {
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        const existingData = await prisma.stockData.findMany({
+          where: {
+            ticker: input.ticker,
+            date: {
+              gte: new Date(input.start),
+              lte: new Date(input.end),
+            },
+          },
+          orderBy: {
+            date: 'desc',
+          },
+        });
+
+        if (existingData && existingData.length > 0) {
+            console.log(`Found data for ${input.ticker} in Prisma DB`);
+            console.log(existingData);
+            return existingData.map((item) => ({
+                date: item.date.toISOString(),
+                open: item.open.toString(),
+                high: item.high.toString(),
+                low: item.low.toString(),
+                close: item.close.toString(),
+            }));
+          }
 
         console.log("Data Router: ");
         console.log(input.ticker);
         console.log(input.start);
         console.log(input.end);
-        console.log(input.interval);
 
-        const data = await fetchStockData(input.ticker, input.start, input.end, input.interval);
+        const data = await fetchStockData(input.ticker, input.start, input.end);
+
+        await prisma.$transaction(
+            Object.keys(data).map((stockData) => {
+                return prisma.stockData.create({
+                data: {
+                    ticker: input.ticker,
+                    date: new Date(stockData['date']),
+                    open: parseFloat(stockData['1. open']),
+                    high: parseFloat(stockData['2. high']),
+                    low: parseFloat(stockData['3. low']),
+                    close: parseFloat(stockData['4. close']),
+                },
+                });
+            })
+        );
 
         return data;
     }),
